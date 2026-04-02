@@ -270,7 +270,7 @@ function formatEmailHTML(marketData, watchlist) {
   `;
 }
 
-async function sendEmailDirect(baseUrl = process.env.BASE_URL) {
+async function sendEmailDirect(baseUrl = process.env.BASE_URL || "http://localhost:5000") {
   const marketRes = await axios.get(`${baseUrl}/api/test-market`);
   const watchlistRes = await axios.get(`${baseUrl}/api/watchlist`);
 
@@ -279,12 +279,14 @@ async function sendEmailDirect(baseUrl = process.env.BASE_URL) {
     watchlistRes.data.watchlist
   );
 
-  await transporter.sendMail({
+  const info = await transporter.sendMail({
     from: process.env.EMAIL_USER,
     to: process.env.EMAIL_TO,
-    subject: `📊 Daily Stocks Report - ${serverDate.toLocaleDateString()}`,
+    subject: "📊 Daily Stock Report",
     html: htmlContent,
   });
+
+  return info;
 }
 
 async function sendEmailWithRetry(maxRetries = 3, baseUrl = process.env.BASE_URL) {

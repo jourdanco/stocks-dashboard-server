@@ -182,16 +182,12 @@ app.get("/api/watchlist", async (req, res) => {
 
 app.get("/api/test-email-direct", async (req, res) => {
   try {
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_TO,
-      subject: "Test Email",
-      text: "If you received this, email sending works.",
-    });
+    const info = await sendEmailDirect(process.env.BASE_URL);
 
     res.json({
       success: true,
-      message: "Direct test email sent successfully",
+      message: "Direct email test sent successfully",
+      response: info?.response || null,
     });
   } catch (error) {
     console.error("DIRECT EMAIL ERROR:", error);
