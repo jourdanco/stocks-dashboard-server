@@ -180,6 +180,32 @@ app.get("/api/watchlist", async (req, res) => {
   }
 });
 
+app.get("/api/test-email-direct", async (req, res) => {
+  try {
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: process.env.EMAIL_TO,
+      subject: "Test Email",
+      text: "If you received this, email sending works.",
+    });
+
+    res.json({
+      success: true,
+      message: "Direct test email sent successfully",
+    });
+  } catch (error) {
+    console.error("DIRECT EMAIL ERROR:", error);
+    res.status(500).json({
+      success: false,
+      message: "Direct email test failed",
+      errorMessage: error.message || null,
+      errorCode: error.code || null,
+      errorResponse: error.response || null,
+      errorCommand: error.command || null,
+    });
+  }
+});
+
 app.get("/api/send-email", async (req, res) => {
   try {
     await sendEmailDirect(process.env.BASE_URL);
