@@ -1,7 +1,7 @@
 require("dotenv").config();
 
 const nodemailer = require("nodemailer");
-const axios = require("axios");
+const { getMarketData, getWatchlistData } = require("./scraperService");
 
 const serverDate = new Date();
 
@@ -27,7 +27,7 @@ function formatEmailHTML(marketData, watchlist) {
       change > 0 ? "#22c55e" : change < 0 ? "#ef4444" : "#f8fafc";
     const arrow = change > 0 ? "▲" : change < 0 ? "▼" : "";
 
-    watchlistHTML += `
+     watchlistHTML += `
       <tr>
         <td style="padding: 0 0 14px 0;">
           <table
@@ -74,33 +74,12 @@ function formatEmailHTML(marketData, watchlist) {
 
   return `
     <div style="margin: 0; padding: 0; background-color: #0f172a;">
-      <table
-        role="presentation"
-        width="100%"
-        cellspacing="0"
-        cellpadding="0"
-        border="0"
-        style="
-          width: 100%;
-          background-color: #0f172a;
-          font-family: Arial, sans-serif;
-          color: #f8fafc;
-        "
-      >
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+        style="width: 100%; background-color: #0f172a; font-family: Arial, sans-serif; color: #f8fafc;">
         <tr>
           <td align="center" style="padding: 24px 12px;">
-            <table
-              role="presentation"
-              width="100%"
-              cellspacing="0"
-              cellpadding="0"
-              border="0"
-              style="
-                max-width: 720px;
-                width: 100%;
-                background-color: #0f172a;
-              "
-            >
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+              style="max-width: 720px; width: 100%; background-color: #0f172a;">
               <tr>
                 <td style="padding-bottom: 20px; text-align: center;">
                   <div style="font-size: 26px; font-weight: bold; color: #f8fafc;">
@@ -111,23 +90,11 @@ function formatEmailHTML(marketData, watchlist) {
 
               <tr>
                 <td style="padding-bottom: 16px;">
-                  <table
-                    role="presentation"
-                    width="100%"
-                    cellspacing="0"
-                    cellpadding="0"
-                    border="0"
-                    style="
-                      width: 100%;
-                      background: #1e293b;
-                      border-radius: 12px;
-                    "
-                  >
+                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+                    style="width: 100%; background: #1e293b; border-radius: 12px;">
                     <tr>
                       <td style="padding: 18px;">
-                        <div style="font-size: 18px; font-weight: bold; margin-bottom: 12px;">
-                          Market Overview
-                        </div>
+                        <div style="font-size: 18px; font-weight: bold; margin-bottom: 12px;">Market Overview</div>
                         <div style="font-size: 14px; line-height: 1.8;">
                           <div><strong>Status:</strong> ${marketData.marketStatus || "N/A"}</div>
                           <div><strong>As of:</strong> ${marketData.asOf || "N/A"}</div>
@@ -140,23 +107,11 @@ function formatEmailHTML(marketData, watchlist) {
 
               <tr>
                 <td style="padding-bottom: 16px;">
-                  <table
-                    role="presentation"
-                    width="100%"
-                    cellspacing="0"
-                    cellpadding="0"
-                    border="0"
-                    style="
-                      width: 100%;
-                      background: #1e293b;
-                      border-radius: 12px;
-                    "
-                  >
+                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+                    style="width: 100%; background: #1e293b; border-radius: 12px;">
                     <tr>
                       <td style="padding: 18px;">
-                        <div style="font-size: 18px; font-weight: bold; margin-bottom: 12px;">
-                          PSEi
-                        </div>
+                        <div style="font-size: 18px; font-weight: bold; margin-bottom: 12px;">PSEi</div>
                         <div style="font-size: 14px; line-height: 1.8;">
                           <div><strong>Value:</strong> ${marketData?.psei?.value || "N/A"}</div>
                           <div style="color: ${pseiColor}; font-weight: bold;">
@@ -174,23 +129,11 @@ function formatEmailHTML(marketData, watchlist) {
 
               <tr>
                 <td style="padding-bottom: 16px;">
-                  <table
-                    role="presentation"
-                    width="100%"
-                    cellspacing="0"
-                    cellpadding="0"
-                    border="0"
-                    style="
-                      width: 100%;
-                      background: #1e293b;
-                      border-radius: 12px;
-                    "
-                  >
+                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+                    style="width: 100%; background: #1e293b; border-radius: 12px;">
                     <tr>
                       <td style="padding: 18px;">
-                        <div style="font-size: 18px; font-weight: bold; margin-bottom: 12px;">
-                          Market Totals
-                        </div>
+                        <div style="font-size: 18px; font-weight: bold; margin-bottom: 12px;">Market Totals</div>
                         <div style="font-size: 14px; line-height: 1.8;">
                           <div><strong>Volume:</strong> ${marketData?.totals?.volume || "N/A"}</div>
                           <div><strong>Trades:</strong> ${marketData?.totals?.trades || "N/A"}</div>
@@ -204,23 +147,11 @@ function formatEmailHTML(marketData, watchlist) {
 
               <tr>
                 <td style="padding-bottom: 16px;">
-                  <table
-                    role="presentation"
-                    width="100%"
-                    cellspacing="0"
-                    cellpadding="0"
-                    border="0"
-                    style="
-                      width: 100%;
-                      background: #1e293b;
-                      border-radius: 12px;
-                    "
-                  >
+                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+                    style="width: 100%; background: #1e293b; border-radius: 12px;">
                     <tr>
                       <td style="padding: 18px;">
-                        <div style="font-size: 18px; font-weight: bold; margin-bottom: 12px;">
-                          Market Breadth
-                        </div>
+                        <div style="font-size: 18px; font-weight: bold; margin-bottom: 12px;">Market Breadth</div>
                         <div style="font-size: 14px; line-height: 1.8;">
                           <div><strong>Advances:</strong> ${marketData?.breadth?.advances || "N/A"}</div>
                           <div><strong>Declines:</strong> ${marketData?.breadth?.declines || "N/A"}</div>
@@ -234,22 +165,14 @@ function formatEmailHTML(marketData, watchlist) {
 
               <tr>
                 <td style="padding-bottom: 8px;">
-                  <div style="font-size: 18px; font-weight: bold; margin-bottom: 12px;">
-                    Watchlist
-                  </div>
+                  <div style="font-size: 18px; font-weight: bold; margin-bottom: 12px;">Watchlist</div>
                 </td>
               </tr>
 
               <tr>
                 <td>
-                  <table
-                    role="presentation"
-                    width="100%"
-                    cellspacing="0"
-                    cellpadding="0"
-                    border="0"
-                    style="width: 100%;"
-                  >
+                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+                    style="width: 100%;">
                     ${watchlistHTML}
                   </table>
                 </td>
@@ -270,26 +193,37 @@ function formatEmailHTML(marketData, watchlist) {
   `;
 }
 
-async function sendEmailDirect(baseUrl = process.env.BASE_URL || "http://localhost:5000") {
-  const marketRes = await axios.get(`${baseUrl}/api/test-market`);
-  const watchlistRes = await axios.get(`${baseUrl}/api/watchlist`);
+async function sendEmailDirect() {
+  const marketData = await getMarketData();
+  const watchlistData = await getWatchlistData();
 
   const htmlContent = formatEmailHTML(
-    marketRes.data,
-    watchlistRes.data.watchlist
+    marketData,
+    watchlistData.watchlist
   );
 
   const info = await transporter.sendMail({
     from: process.env.EMAIL_USER,
     to: process.env.EMAIL_TO,
-    subject: "📊 Daily Stock Report",
+    subject: `📊 Daily Stocks Report - ${serverDate.toLocaleDateString()}`,
     html: htmlContent,
   });
 
   return info;
 }
 
-async function sendEmailWithRetry(maxRetries = 3, baseUrl = process.env.BASE_URL) {
+async function sendSimpleTestEmail() {
+  const info = await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: process.env.EMAIL_TO,
+    subject: "Test Email",
+    text: "If you received this, direct email sending works.",
+  });
+
+  return info;
+}
+
+async function sendEmailWithRetry(maxRetries = 3) {
   let attempt = 0;
 
   while (attempt < maxRetries) {
@@ -297,7 +231,7 @@ async function sendEmailWithRetry(maxRetries = 3, baseUrl = process.env.BASE_URL
       attempt++;
       console.log(`Attempt ${attempt} to send email...`);
 
-      await sendEmailDirect(baseUrl);
+      await sendEmailDirect();
 
       console.log("✅ Email sent successfully");
       return true;
@@ -311,7 +245,6 @@ async function sendEmailWithRetry(maxRetries = 3, baseUrl = process.env.BASE_URL
 
       const delay = attempt * 5000;
       console.log(`⏳ Retrying in ${delay / 1000}s...`);
-
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
@@ -320,5 +253,6 @@ async function sendEmailWithRetry(maxRetries = 3, baseUrl = process.env.BASE_URL
 module.exports = {
   formatEmailHTML,
   sendEmailDirect,
+  sendSimpleTestEmail,
   sendEmailWithRetry,
 };
