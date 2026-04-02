@@ -217,7 +217,7 @@ async function sendSimpleTestEmail() {
     from: process.env.EMAIL_USER,
     to: process.env.EMAIL_TO,
     subject: "Test Email",
-    text: "If you received this, direct email sending works.",
+    text: "If you received this, test email sending works.",
   });
 
   return info;

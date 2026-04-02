@@ -94,7 +94,7 @@ app.get("/api/send-email", async (req, res) => {
 });
 
 cron.schedule(
-  "* * * * *",
+  "* 10 * * *",
   async () => {
     console.log("Email send");
 
