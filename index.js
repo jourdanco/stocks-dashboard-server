@@ -199,9 +199,9 @@ app.get("/api/send-email", async (req, res) => {
 });
 
 cron.schedule(
-  "* * * * *",
+  "* 18 * * *",
   async () => {
-    console.log("CRON TRIGGERED");
+    console.log("Email Send");
 
     try {
       const success = await sendEmailWithRetry(3, process.env.BASE_URL);
@@ -210,7 +210,7 @@ cron.schedule(
         console.error("⚠️ Email failed after retries");
       }
     } catch (err) {
-      console.error("CRON ERROR:", err.message);
+      console.error("Error:", err.message);
     }
   },
   {
