@@ -337,7 +337,7 @@ async function sendEmailDirect() {
   const info = await transporter.sendMail({
     from: process.env.EMAIL_USER,
     to: process.env.EMAIL_TO,
-    subject: `📊 Daily Stocks Report - ${serverDate}`,
+    subject: `📊 Daily Stocks Report ${serverDate}`,
     html: htmlContent,
     attachments,
   });
