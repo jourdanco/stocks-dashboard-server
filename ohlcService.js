@@ -1,4 +1,5 @@
 const { initFirebase } = require("./firebaseService");
+const { getWatchlist, scrapeStock } = require("./scraperService");
 
 function getPHDateString(date = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
@@ -9,38 +10,69 @@ function getPHDateString(date = new Date()) {
   }).format(date);
 }
 
-async function buildDailyOHLCForSymbol(symbol) {
+function parseNumber(value) {
+  if (value === null || value === undefined) return null;
+  const num = parseFloat(String(value).replace(/,/g, ""));
+  return Number.isNaN(num) ? null : num;
+}
+
+async function scrapeAndSaveDailyOHLCForSymbol(stock) {
   const db = initFirebase();
   const dateString = getPHDateString();
 
-  const snapshot = await db
-    .collection("price_history")
-    .where("symbol", "==", symbol)
-    .get();
+  const stockData = await scrapeStock(stock);
 
-  const rows = snapshot.docs
-    .map((doc) => doc.data())
-    .filter((row) => row.timestamp.startsWith(dateString))
-    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  const open = parseNumber(stockData.open);
+  const high = parseNumber(stockData.dayHigh);
+  const low = parseNumber(stockData.dayLow);
+  const close = parseNumber(stockData.lastTradedPrice);
 
-  if (!rows.length) return null;
-
-  const prices = rows.map((r) => r.price);
+  if (
+    open === null ||
+    high === null ||
+    low === null ||
+    close === null
+  ) {
+    throw new Error(
+      `Incomplete OHLC data for ${stock.symbol}. open=${stockData.open}, high=${stockData.dayHigh}, low=${stockData.dayLow}, close=${stockData.lastTradedPrice}`
+    );
+  }
 
   const candle = {
-    symbol,
+    symbol: stockData.symbol,
     date: dateString,
-    open: rows[0].price,
-    high: Math.max(...prices),
-    low: Math.min(...prices),
-    close: rows[rows.length - 1].price,
-    points: rows.length,
+    open,
+    high,
+    low,
+    close,
     updatedAt: new Date().toISOString(),
   };
 
-  await db.collection("daily_ohlc").doc(`${symbol}_${dateString}`).set(candle);
+  await db
+    .collection("daily_ohlc")
+    .doc(`${stockData.symbol}_${dateString}`)
+    .set(candle);
 
   return candle;
+}
+
+async function scrapeAndSaveAllDailyOHLC() {
+  const watchlist = getWatchlist();
+  const results = [];
+
+  for (const stock of watchlist) {
+    try {
+      const candle = await scrapeAndSaveDailyOHLCForSymbol(stock);
+      results.push(candle);
+    } catch (error) {
+      console.error(
+        `Failed to save daily OHLC for ${stock.symbol}:`,
+        error.message
+      );
+    }
+  }
+
+  return results;
 }
 
 async function getLastCandles(symbol, limit = 30) {
@@ -55,10 +87,11 @@ async function getLastCandles(symbol, limit = 30) {
 
   const candles = snapshot.docs.map((doc) => doc.data());
 
-  return candles.reverse(); // oldest → newest
+  return candles.reverse();
 }
 
 module.exports = {
-  buildDailyOHLCForSymbol,
+  scrapeAndSaveDailyOHLCForSymbol,
+  scrapeAndSaveAllDailyOHLC,
   getLastCandles,
 };

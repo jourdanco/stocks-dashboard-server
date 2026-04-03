@@ -96,7 +96,7 @@ async function scrapeStock(stock) {
     );
 
   const lastTradedPriceMatch = cleanText.match(/Last Traded Price\s+([\d,]+\.\d+)/i);
-  const openMatch = cleanText.match(/Open\s+([\d,]+\.\d+)/i);
+
   const previousCloseMatch = cleanText.match(
     /Previous Close and Date\s+([\d,]+\.\d+)\s+\(([A-Za-z]+\s+\d{1,2},\s+\d{4})\)/i
   );
@@ -125,9 +125,23 @@ async function scrapeStock(stock) {
   const valueMatch =
     cleanText.match(/Change\(% Change\).*?Value\s+([\d,]+\.\d+)/i) ||
     cleanText.match(/Last Traded Price.*?Value\s+([\d,]+\.\d+)/i);
+
   const volumeMatch = cleanText.match(/Volume\s+([\d,]+)/i);
-  const highMatch = cleanText.match(/52-Week High\s+([\d,]+\.\d+)/i);
-  const lowMatch = cleanText.match(/52-Week Low\s+([\d,]+\.\d+)/i);
+
+  const dayOpenMatch = cleanText.match(
+    /Last Traded Price.*?Open\s+([\d,]+\.\d+)/i
+  );
+
+  const dayHighMatch = cleanText.match(
+    /Open.*?High\s+([\d,]+\.\d+)/i
+  );
+
+  const dayLowMatch = cleanText.match(
+    /High.*?Low\s+([\d,]+\.\d+)/i
+  );
+
+  const week52HighMatch = cleanText.match(/52-Week High\s+([\d,]+\.\d+)/i);
+  const week52LowMatch = cleanText.match(/52-Week Low\s+([\d,]+\.\d+)/i);
 
   return {
     cmpyId: stock.cmpyId,
@@ -136,15 +150,17 @@ async function scrapeStock(stock) {
     asOf: asOfStatusMatch ? asOfStatusMatch[1] : null,
     status: asOfStatusMatch && asOfStatusMatch[2] ? asOfStatusMatch[2] : null,
     lastTradedPrice: lastTradedPriceMatch ? lastTradedPriceMatch[1] : null,
-    open: openMatch ? openMatch[1] : null,
+    open: dayOpenMatch ? dayOpenMatch[1] : null,
     previousClose: previousCloseMatch ? previousCloseMatch[1] : null,
     previousCloseDate: previousCloseMatch ? previousCloseMatch[2] : null,
     change,
     percentChange,
     value: valueMatch ? valueMatch[1] : null,
     volume: volumeMatch ? volumeMatch[1] : null,
-    week52High: highMatch ? highMatch[1] : null,
-    week52Low: lowMatch ? lowMatch[1] : null,
+    dayHigh: dayHighMatch ? dayHighMatch[1] : null,
+    dayLow: dayLowMatch ? dayLowMatch[1] : null,
+    week52High: week52HighMatch ? week52HighMatch[1] : null,
+    week52Low: week52LowMatch ? week52LowMatch[1] : null,
   };
 }
 
@@ -162,4 +178,5 @@ module.exports = {
   getMarketData,
   getWatchlistData,
   getWatchlist,
+  scrapeStock,
 };

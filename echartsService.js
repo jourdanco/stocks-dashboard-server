@@ -40,19 +40,21 @@ function buildCandlestickOption(symbol, candles) {
       },
     },
     yAxis: {
-      scale: true,
-      axisLine: {
+    scale: true,
+    minInterval: 1,
+    axisLine: {
         lineStyle: { color: "#94a3b8" },
-      },
-      axisLabel: {
+    },
+    axisLabel: {
         color: "#cbd5e1",
-      },
-      splitLine: {
+        formatter: (value) => value, // 👈 remove rounding
+    },
+    splitLine: {
         lineStyle: { color: "#334155" },
-      },
-      splitArea: {
+    },
+    splitArea: {
         show: false,
-      },
+    },
     },
     series: [
       {
