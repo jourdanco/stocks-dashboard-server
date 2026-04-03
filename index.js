@@ -125,58 +125,6 @@ app.get("/api/test-email-direct", async (req, res) => {
   }
 });
 
-app.get("/api/test-chart/:symbol", async (req, res) => {
-  try {
-    const symbol = req.params.symbol.toUpperCase();
-    const candles = await getLastCandles(symbol, 30);
-
-    if (!candles.length) {
-      return res.json({
-        success: false,
-        message: `No candles found for ${symbol}`,
-      });
-    }
-
-    const config = buildCandlestickChartConfig(symbol, candles);
-    const chartUrl = getChartUrl(config);
-
-    res.send(`
-      <h1>${symbol} Chart Test</h1>
-      <p>Candles found: ${candles.length}</p>
-      <p><a href="${chartUrl}" target="_blank">Open chart directly</a></p>
-      <img src="${chartUrl}" style="max-width: 100%; border: 1px solid #ccc;" />
-      <pre>${JSON.stringify(candles, null, 2)}</pre>
-    `);
-  } catch (error) {
-    console.error("TEST CHART ERROR:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to generate test chart",
-      error: error.message,
-    });
-  }
-});
-
-app.get("/api/test-chart-hardcoded", (req, res) => {
-  const candles = [
-    { date: "2026-03-30", open: 109, high: 115, low: 106, close: 115 },
-    { date: "2026-03-31", open: 115, high: 118, low: 108, close: 110 },
-    { date: "2026-04-01", open: 110, high: 125, low: 109, close: 120 },
-    { date: "2026-04-02", open: 120, high: 122, low: 112, close: 114 },
-    { date: "2026-04-03", open: 114, high: 121, low: 113, close: 119 },
-  ];
-
-  const config = buildCandlestickChartConfig("BDO", candles);
-  const chartUrl = getChartUrl(config);
-
-  res.send(`
-    <h1>Hardcoded Candlestick Test</h1>
-    <p><a href="${chartUrl}" target="_blank">Open chart directly</a></p>
-    <img src="${chartUrl}" style="max-width: 100%;" />
-    <pre>${JSON.stringify(config, null, 2)}</pre>
-  `);
-});
-
 app.get("/api/send-email", async (req, res) => {
   try {
     const info = await sendEmailDirect();

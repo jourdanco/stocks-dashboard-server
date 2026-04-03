@@ -100,13 +100,28 @@ async function scrapeStock(stock) {
   const previousCloseMatch = cleanText.match(
     /Previous Close and Date\s+([\d,]+\.\d+)\s+\(([A-Za-z]+\s+\d{1,2},\s+\d{4})\)/i
   );
-  const changeMatch =
-  cleanText.match(
-    /Change\(%\s*Change\)\s+(?:up|down|unch)?\s*([+\-]?[\d,]+\.\d+)\s+\(([+\-]?[\d,]+\.\d+)%\)/i
-  ) ||
-  cleanText.match(
-    /Change\(%\s*Change\)\s+([+\-]?[\d,]+\.\d+)\s+\(([+\-]?[\d,]+\.\d+)%\)/i
+
+  const changeMatch = cleanText.match(
+    /Change\s*\(?\s*%?\s*Change\s*\)?\s*(up|down|unch)?\s*([+\-]?[\d,]+(?:\.\d+)?)\s*\(\s*([+\-]?[\d,]+(?:\.\d+)?)%\s*\)/i
   );
+
+  let change = null;
+  let percentChange = null;
+
+  if (changeMatch) {
+    const direction = (changeMatch[1] || "").toLowerCase();
+    change = changeMatch[2];
+    percentChange = changeMatch[3];
+
+    if (direction === "down") {
+      if (!change.startsWith("-")) change = `-${change}`;
+      if (!percentChange.startsWith("-")) percentChange = `-${percentChange}`;
+    } else if (direction === "unch") {
+      change = "0.00";
+      percentChange = "0.00";
+    }
+  }
+
   const valueMatch =
     cleanText.match(/Change\(% Change\).*?Value\s+([\d,]+\.\d+)/i) ||
     cleanText.match(/Last Traded Price.*?Value\s+([\d,]+\.\d+)/i);
@@ -124,8 +139,8 @@ async function scrapeStock(stock) {
     open: openMatch ? openMatch[1] : null,
     previousClose: previousCloseMatch ? previousCloseMatch[1] : null,
     previousCloseDate: previousCloseMatch ? previousCloseMatch[2] : null,
-    change: changeMatch ? changeMatch[1] : null,
-    percentChange: changeMatch ? changeMatch[2] : null,
+    change,
+    percentChange,
     value: valueMatch ? valueMatch[1] : null,
     volume: volumeMatch ? volumeMatch[1] : null,
     week52High: highMatch ? highMatch[1] : null,

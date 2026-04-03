@@ -6,7 +6,7 @@ function buildCandlestickOption(symbol, candles) {
     backgroundColor: "#1e293b",
     animation: false,
     title: {
-      text: `${symbol} Candlestick`,
+      text: `${symbol}`,
       left: "center",
       textStyle: {
         color: "#f8fafc",

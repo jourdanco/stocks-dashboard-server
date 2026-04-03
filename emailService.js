@@ -37,11 +37,11 @@ async function buildWatchlistHTML(watchlist, chartCidMap = {}) {
       chartHtml = `
         <div style="margin-top: 14px;">
           <div style="font-size: 13px; color: #cbd5e1; margin-bottom: 8px;">
-            Monthly Candlestick Chart
+            Monthly Chart
           </div>
           <img
             src="cid:${chartCidMap[stock.symbol]}"
-            alt="${stock.symbol} candlestick chart"
+            alt="${stock.symbol}"
             style="width: 100%; max-width: 620px; border-radius: 10px; display: block;"
           />
         </div>
