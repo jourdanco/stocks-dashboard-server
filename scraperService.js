@@ -100,8 +100,12 @@ async function scrapeStock(stock) {
   const previousCloseMatch = cleanText.match(
     /Previous Close and Date\s+([\d,]+\.\d+)\s+\(([A-Za-z]+\s+\d{1,2},\s+\d{4})\)/i
   );
-  const changeMatch = cleanText.match(
-    /Change\(%\s*Change\)\s+(?:up|down)?\s*([+\-]?[\d,]+\.\d+)\s+\(([+\-]?[\d,]+\.\d+)%\)/i
+  const changeMatch =
+  cleanText.match(
+    /Change\(%\s*Change\)\s+(?:up|down|unch)?\s*([+\-]?[\d,]+\.\d+)\s+\(([+\-]?[\d,]+\.\d+)%\)/i
+  ) ||
+  cleanText.match(
+    /Change\(%\s*Change\)\s+([+\-]?[\d,]+\.\d+)\s+\(([+\-]?[\d,]+\.\d+)%\)/i
   );
   const valueMatch =
     cleanText.match(/Change\(% Change\).*?Value\s+([\d,]+\.\d+)/i) ||

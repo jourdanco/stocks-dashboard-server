@@ -1,5 +1,10 @@
 [
   {
+    "symbol": "LTG",
+    "companyName": "LT Group",
+    "cmpyId": 12
+  },
+  {
     "symbol": "JFC",
     "companyName": "Jollibee Foods Corporation",
     "cmpyId": 86
@@ -8,6 +13,11 @@
     "symbol": "SM",
     "companyName": "SM Investments Corporation",
     "cmpyId": 599
+  },
+  {
+    "symbol": "BDO",
+    "companyName": "BDO Unibank",
+    "cmpyId": 260
   },
     {
     "symbol": "JGS",
