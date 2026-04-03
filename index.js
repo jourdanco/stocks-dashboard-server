@@ -94,9 +94,9 @@ app.get("/api/send-email", async (req, res) => {
 });
 
 cron.schedule(
-  "* 10 * * *",
+  "0 18 * * 1-5",
   async () => {
-    console.log("Email send");
+    console.log("Email send attempt");
 
     try {
       const success = await sendEmailWithRetry(3);

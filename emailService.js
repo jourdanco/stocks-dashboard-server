@@ -83,7 +83,7 @@ function formatEmailHTML(marketData, watchlist) {
               <tr>
                 <td style="padding-bottom: 20px; text-align: center;">
                   <div style="font-size: 26px; font-weight: bold; color: #f8fafc;">
-                    📊 Daily Stocks Report ${serverDate.toLocaleDateString()}
+                    📊 Daily Stocks Report ${serverDate.toLocaleDateString({ timeZone: 'Asia/Manila' })}
                   </div>
                 </td>
               </tr>
@@ -181,7 +181,7 @@ function formatEmailHTML(marketData, watchlist) {
               <tr>
                 <td style="padding-top: 10px; text-align: center;">
                   <div style="font-size: 12px; color: #94a3b8;">
-                    Generated automatically by your Stocks Dashboard
+                    Sent automatically every 6:00PM © jdan
                   </div>
                 </td>
               </tr>
@@ -205,7 +205,7 @@ async function sendEmailDirect() {
   const info = await transporter.sendMail({
     from: process.env.EMAIL_USER,
     to: process.env.EMAIL_TO,
-    subject: `📊 Daily Stocks Report - ${serverDate.toLocaleDateString()}`,
+    subject: `📊 Daily Stocks Report - ${serverDate.toLocaleDateString({ timeZone: 'Asia/Manila' })}`,
     html: htmlContent,
   });
 
