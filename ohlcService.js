@@ -11,9 +11,15 @@ function getPHDateString(date = new Date()) {
 }
 
 function parseNumber(value) {
-  if (value === null || value === undefined) return null;
-  const num = parseFloat(String(value).replace(/,/g, ""));
-  return Number.isNaN(num) ? null : num;
+  if (!value) return null; // 👈 handles undefined, null, empty
+
+  try {
+    const num = parseFloat(String(value).replace(/,/g, ""));
+    return Number.isNaN(num) ? null : num;
+  } catch (err) {
+    console.error("parseNumber error:", value);
+    return null;
+  }
 }
 
 async function scrapeAndSaveDailyOHLCForSymbol(stock) {
