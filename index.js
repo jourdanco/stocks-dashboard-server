@@ -313,7 +313,7 @@ cron.schedule(
 
 // Daily email at 6:00 PM, Monday-Friday
 cron.schedule(
-  "0 18 * * 1-5",
+  "* * * * 1-5",
   async () => {
     console.log("Email send attempt");
 
