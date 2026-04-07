@@ -1,12 +1,16 @@
 require("dotenv").config();
 
+const dns = require("dns");
+dns.setDefaultResultOrder("ipv4first");
 const nodemailer = require("nodemailer");
 const { getMarketData, getWatchlistData } = require("./scraperService");
 const { getLastCandles } = require("./ohlcService");
 const { generateCandlestickChartBuffer } = require("./echartsService");
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",   // ✅ use host instead of service
+  port: 587,
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
