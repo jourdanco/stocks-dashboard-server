@@ -6,7 +6,7 @@ function buildCandlestickOption(symbol, candles) {
     backgroundColor: "#1e293b",
     animation: false,
     title: {
-      text: `${symbol}`,
+      text: ``,
       left: "center",
       textStyle: {
         color: "#f8fafc",
@@ -112,7 +112,7 @@ async function generateLineChartBuffer(symbol, priceHistory, width = 900, height
     backgroundColor: "#1e293b", // transparent to match candlestick chart
     animation: false,
     title: {
-      text: `${symbol} Daily Price`,
+      text: ``,
       left: "center",
       textStyle: { color: "#f8fafc", fontSize: 18 }
     },
