@@ -81,8 +81,8 @@ function buildCandlestickOption(symbol, candles) {
 async function generateCandlestickChartBuffer(
   symbol,
   candles,
-  width = 900,
-  height = 500
+  width = 600,
+  height = 300
 ) {
   const canvas = createCanvas(width, height);
 
@@ -101,7 +101,7 @@ async function generateCandlestickChartBuffer(
   return buffer;
 }
 
-async function generateLineChartBuffer(symbol, priceHistory, width = 900, height = 500) {
+async function generateLineChartBuffer(symbol, priceHistory, width = 600, height = 300) {
   const timestamps = priceHistory.map(p => new Date(p.timestamp).toISOString().split('T')[0]); // use full date
   const prices = priceHistory.map(p => Number(p.price));
 
