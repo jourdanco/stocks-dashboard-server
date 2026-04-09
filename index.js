@@ -322,6 +322,8 @@ cron.schedule(
       const success = await sendEmailWithRetry(3);
       if (!success) {
         console.error("⚠️ Email failed after retries");
+      } else {
+        console.log("Email sent successfully ✅");
       }
     } catch (err) {
       console.error("Email cron error:", err.message);

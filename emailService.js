@@ -340,7 +340,7 @@ async function sendEmailDirect() {
   return await resend.emails.send({
     from: "onboarding@resend.dev",
     to: process.env.EMAIL_TO,
-    subject: "📊 Daily Stocks Report",
+    subject: `📊 Daily Stocks Report ${serverDate}`,
     html,
   });
 }
