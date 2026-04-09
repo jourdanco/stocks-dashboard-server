@@ -8,7 +8,10 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 const { getMarketData, getWatchlistData } = require("./scraperService");
 const { getLastCandles } = require("./ohlcService");
-const { generateCandlestickChartBuffer } = require("./echartsService");
+const { initFirebase } = require("./firebaseService");
+const echarts = require("echarts");
+const { createCanvas } = require("canvas");
+const { generateCandlestickChartBuffer, generateLineChartBuffer } = require("./echartsService");
 
 // ================= DATE =================
 function getPHDateString(date = new Date()) {
@@ -20,7 +23,56 @@ function getPHDateString(date = new Date()) {
   }).format(date);
 }
 
-// ================= BUILD CHARTS =================
+// ================= DAILY PRICE HISTORY =================
+async function getDailyPriceHistory(symbol) {
+  const db = initFirebase();
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date();
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const snapshot = await db.collection("price_history")
+    .where("symbol", "==", symbol)
+    .where("timestamp", ">=", startOfDay.toISOString())
+    .where("timestamp", "<=", endOfDay.toISOString())
+    .orderBy("timestamp")
+    .get();
+
+  return snapshot.docs.map(doc => doc.data());
+}
+
+
+// ================= BUILD DAILY CHARTS =================
+async function buildDailyLineChartMap(watchlist) {
+  const chartMap = {};
+  const isLocal = process.env.BASE_URL?.includes("localhost");
+  const chartsDir = path.join(__dirname, "charts");
+
+  if (!fs.existsSync(chartsDir)) fs.mkdirSync(chartsDir);
+
+  for (const stock of watchlist) {
+    try {
+      const priceHistory = await getDailyPriceHistory(stock.symbol);
+      if (!priceHistory || priceHistory.length === 0) continue;
+
+      const buffer = await generateLineChartBuffer(stock.symbol, priceHistory, 900, 500);
+
+      if (isLocal) {
+        chartMap[stock.symbol] = `data:image/png;base64,${buffer.toString("base64")}`;
+      } else {
+        const filePath = path.join(chartsDir, `${stock.symbol}-daily.png`);
+        fs.writeFileSync(filePath, buffer);
+        chartMap[stock.symbol] = `${process.env.BASE_URL}/charts/${stock.symbol}-daily.png`;
+      }
+    } catch (err) {
+      console.error(`Daily line chart failed for ${stock.symbol}:`, err.message);
+    }
+  }
+
+  return chartMap;
+}
+
+// ================= BUILD MONTHLY CHARTS =================
 async function buildChartMap(watchlist) {
   const chartMap = {};
   const isLocal = process.env.BASE_URL?.includes("localhost");
@@ -47,17 +99,11 @@ async function buildChartMap(watchlist) {
       );
 
       if (isLocal) {
-        // ✅ LOCAL: use base64 (works locally)
-        chartMap[stock.symbol] = `data:image/png;base64,${buffer.toString(
-          "base64"
-        )}`;
+        chartMap[stock.symbol] = `data:image/png;base64,${buffer.toString("base64")}`;
       } else {
-        // ✅ PRODUCTION: save + use URL
         const filePath = path.join(chartsDir, `${stock.symbol}.png`);
         fs.writeFileSync(filePath, buffer);
-
-        chartMap[stock.symbol] =
-          `${process.env.BASE_URL}/charts/${stock.symbol}.png`;
+        chartMap[stock.symbol] = `${process.env.BASE_URL}/charts/${stock.symbol}.png`;
       }
     } catch (err) {
       console.error(`Chart failed for ${stock.symbol}:`, err.message);
@@ -68,23 +114,35 @@ async function buildChartMap(watchlist) {
 }
 
 // ================= WATCHLIST HTML =================
-async function buildWatchlistHTML(watchlist, chartMap = {}) {
+async function buildWatchlistHTML(watchlist, chartMap = {}, dailyLineChartMap = {}) {
   let watchlistHTML = "";
 
   for (const stock of watchlist) {
     const change = Number(stock.change || 0);
-    const color =
-      change > 0 ? "#22c55e" : change < 0 ? "#ef4444" : "#f8fafc";
+    const color = change > 0 ? "#22c55e" : change < 0 ? "#ef4444" : "#f8fafc";
     const arrow = change > 0 ? "▲" : change < 0 ? "▼" : "";
 
     let chartHtml = "";
 
-    if (chartMap[stock.symbol]) {
-      chartHtml = `
+    // ✅ If a daily chart exists, show it first
+    if (dailyLineChartMap[stock.symbol]) {
+      chartHtml += `
         <div style="margin-top: 14px;">
-          <div style="font-size: 13px; color: #cbd5e1; margin-bottom: 8px;">
-            Monthly Chart
-          </div>
+          <div style="font-size: 13px; color: #cbd5e1; margin-bottom: 8px;">Daily Price Chart</div>
+          <img
+            src="${dailyLineChartMap[stock.symbol]}"
+            alt="${stock.symbol}"
+            style="width: 100%; max-width: 620px; border-radius: 10px; display: block;"
+          />
+        </div>
+      `;
+    }
+
+    // Then show the monthly chart below
+    if (chartMap[stock.symbol]) {
+      chartHtml += `
+        <div style="margin-top: 12px;">
+          <div style="font-size: 13px; color: #cbd5e1; margin-bottom: 8px;">Monthly Chart</div>
           <img
             src="${chartMap[stock.symbol]}"
             alt="${stock.symbol}"
@@ -115,7 +173,6 @@ async function buildWatchlistHTML(watchlist, chartMap = {}) {
               border-radius: 12px;
             "
           >
-          
             <tr>
               <td style="padding: 16px;">
                 <div style="font-size: 18px; font-weight: bold; color: #f8fafc; margin-bottom: 4px;">
@@ -150,19 +207,17 @@ async function buildWatchlistHTML(watchlist, chartMap = {}) {
   return watchlistHTML;
 }
 
-// ================= EMAIL HTML (UNCHANGED STRUCTURE) =================
-async function formatEmailHTML(marketData, watchlist, chartMap = {}) {
+// ================= EMAIL HTML =================
+async function formatEmailHTML(marketData, watchlist, chartMap = {}, dailyLineChartMap = {}) {
   const serverDate = getPHDateString();
+  const watchlistHTML = await buildWatchlistHTML(watchlist, chartMap, dailyLineChartMap);
 
   const pseiChange = Number(marketData?.psei?.change || 0);
-  const pseiColor =
-    pseiChange > 0 ? "#22c55e" : pseiChange < 0 ? "#ef4444" : "#f8fafc";
+  const pseiColor = pseiChange > 0 ? "#22c55e" : pseiChange < 0 ? "#ef4444" : "#f8fafc";
   const pseiArrow = pseiChange > 0 ? "▲" : pseiChange < 0 ? "▼" : "";
 
-  const watchlistHTML = await buildWatchlistHTML(watchlist, chartMap);
-
   return `
-    <div style="margin: 0; padding: 0; background-color: #0f172a;">
+     <div style="margin: 0; padding: 0; background-color: #0f172a;">
       <table
         role="presentation"
         width="100%"
@@ -331,11 +386,13 @@ async function sendEmailDirect() {
   const serverDate = getPHDateString();
 
   const chartMap = await buildChartMap(watchlistData.watchlist);
+  const dailyLineChartMap = await buildDailyLineChartMap(watchlistData.watchlist);
 
   const html = await formatEmailHTML(
     marketData,
     watchlistData.watchlist,
-    chartMap
+    chartMap,
+    dailyLineChartMap
   );
 
   return await resend.emails.send({

@@ -101,7 +101,48 @@ async function generateCandlestickChartBuffer(
   return buffer;
 }
 
+async function generateLineChartBuffer(symbol, priceHistory, width = 900, height = 500) {
+  const timestamps = priceHistory.map(p => new Date(p.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
+  const prices = priceHistory.map(p => p.price);
+
+  const canvas = createCanvas(width, height);
+  const chart = echarts.init(canvas);
+
+  const option = {
+    title: {
+      text: `${symbol} Daily Price`,
+      left: "center",
+      textStyle: { color: "#f8fafc" }
+    },
+    xAxis: {
+      type: "category",
+      data: timestamps,
+      axisLabel: { color: "#cbd5e1" },
+      boundaryGap: false,
+    },
+    yAxis: {
+      type: "value",
+      axisLabel: { color: "#cbd5e1" },
+      splitLine: { lineStyle: { color: "#334155" } }
+    },
+    series: [
+      {
+        data: prices,
+        type: "line",
+        smooth: true,
+        lineStyle: { color: "#22c55e" },
+        itemStyle: { color: "#22c55e" }
+      }
+    ],
+    backgroundColor: "#0f172a",
+  };
+
+  chart.setOption(option);
+  return canvas.toBuffer();
+}
+
 module.exports = {
   buildCandlestickOption,
   generateCandlestickChartBuffer,
+  generateLineChartBuffer, 
 };
