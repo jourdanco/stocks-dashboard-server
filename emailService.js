@@ -1,22 +1,16 @@
 require("dotenv").config();
 
-const dns = require("dns");
-dns.setDefaultResultOrder("ipv4first");
-const nodemailer = require("nodemailer");
+const fs = require("fs");
+const path = require("path");
+
+const { Resend } = require("resend");
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 const { getMarketData, getWatchlistData } = require("./scraperService");
 const { getLastCandles } = require("./ohlcService");
 const { generateCandlestickChartBuffer } = require("./echartsService");
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",   // ✅ use host instead of service
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
-
+// ================= DATE =================
 function getPHDateString(date = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Manila",
@@ -26,7 +20,55 @@ function getPHDateString(date = new Date()) {
   }).format(date);
 }
 
-async function buildWatchlistHTML(watchlist, chartCidMap = {}) {
+// ================= BUILD CHARTS =================
+async function buildChartMap(watchlist) {
+  const chartMap = {};
+  const isLocal = process.env.BASE_URL?.includes("localhost");
+
+  const chartsDir = path.join(__dirname, "charts");
+  if (!fs.existsSync(chartsDir)) {
+    fs.mkdirSync(chartsDir);
+  }
+
+  for (const stock of watchlist) {
+    try {
+      const candles = await getLastCandles(stock.symbol, 30);
+      if (!candles || candles.length === 0) continue;
+
+      const sortedCandles = [...candles].sort(
+        (a, b) => new Date(a.date) - new Date(b.date)
+      );
+
+      const buffer = await generateCandlestickChartBuffer(
+        stock.symbol,
+        sortedCandles,
+        900,
+        500
+      );
+
+      if (isLocal) {
+        // ✅ LOCAL: use base64 (works locally)
+        chartMap[stock.symbol] = `data:image/png;base64,${buffer.toString(
+          "base64"
+        )}`;
+      } else {
+        // ✅ PRODUCTION: save + use URL
+        const filePath = path.join(chartsDir, `${stock.symbol}.png`);
+        fs.writeFileSync(filePath, buffer);
+
+        chartMap[stock.symbol] =
+          `${process.env.BASE_URL}/charts/${stock.symbol}.png`;
+      }
+    } catch (err) {
+      console.error(`Chart failed for ${stock.symbol}:`, err.message);
+    }
+  }
+
+  return chartMap;
+}
+
+// ================= WATCHLIST HTML =================
+async function buildWatchlistHTML(watchlist, chartMap = {}) {
   let watchlistHTML = "";
 
   for (const stock of watchlist) {
@@ -37,14 +79,14 @@ async function buildWatchlistHTML(watchlist, chartCidMap = {}) {
 
     let chartHtml = "";
 
-    if (chartCidMap[stock.symbol]) {
+    if (chartMap[stock.symbol]) {
       chartHtml = `
         <div style="margin-top: 14px;">
           <div style="font-size: 13px; color: #cbd5e1; margin-bottom: 8px;">
             Monthly Chart
           </div>
           <img
-            src="cid:${chartCidMap[stock.symbol]}"
+            src="${chartMap[stock.symbol]}"
             alt="${stock.symbol}"
             style="width: 100%; max-width: 620px; border-radius: 10px; display: block;"
           />
@@ -73,6 +115,7 @@ async function buildWatchlistHTML(watchlist, chartCidMap = {}) {
               border-radius: 12px;
             "
           >
+          
             <tr>
               <td style="padding: 16px;">
                 <div style="font-size: 18px; font-weight: bold; color: #f8fafc; margin-bottom: 4px;">
@@ -107,14 +150,16 @@ async function buildWatchlistHTML(watchlist, chartCidMap = {}) {
   return watchlistHTML;
 }
 
-async function formatEmailHTML(marketData, watchlist, chartCidMap = {}) {
+// ================= EMAIL HTML (UNCHANGED STRUCTURE) =================
+async function formatEmailHTML(marketData, watchlist, chartMap = {}) {
   const serverDate = getPHDateString();
+
   const pseiChange = Number(marketData?.psei?.change || 0);
   const pseiColor =
     pseiChange > 0 ? "#22c55e" : pseiChange < 0 ? "#ef4444" : "#f8fafc";
   const pseiArrow = pseiChange > 0 ? "▲" : pseiChange < 0 ? "▼" : "";
 
-  const watchlistHTML = await buildWatchlistHTML(watchlist, chartCidMap);
+  const watchlistHTML = await buildWatchlistHTML(watchlist, chartMap);
 
   return `
     <div style="margin: 0; padding: 0; background-color: #0f172a;">
@@ -279,116 +324,53 @@ async function formatEmailHTML(marketData, watchlist, chartCidMap = {}) {
   `;
 }
 
-async function buildChartAttachments(watchlist) {
-  const attachments = [];
-  const chartCidMap = {};
-
-  for (const stock of watchlist) {
-    try {
-      const candles = await getLastCandles(stock.symbol, 30);
-
-      if (!candles || candles.length === 0) {
-        continue;
-      }
-
-      const sortedCandles = [...candles].sort(
-        (a, b) => new Date(a.date) - new Date(b.date)
-      );
-
-      const chartBuffer = await generateCandlestickChartBuffer(
-        stock.symbol,
-        sortedCandles,
-        900,
-        500
-      );
-
-      const cid = `${stock.symbol.toLowerCase()}-candlestick@jdan`;
-
-      attachments.push({
-        filename: `${stock.symbol}-candlestick.png`,
-        content: chartBuffer,
-        cid,
-        contentType: "image/png",
-      });
-
-      chartCidMap[stock.symbol] = cid;
-    } catch (error) {
-      console.error(
-        `Chart generation failed for ${stock.symbol}:`,
-        error.message
-      );
-    }
-  }
-
-  return { attachments, chartCidMap };
-}
-
+// ================= SEND =================
 async function sendEmailDirect() {
   const marketData = await getMarketData();
   const watchlistData = await getWatchlistData();
-  const serverDate = getPHDateString();
 
-  const { attachments, chartCidMap } = await buildChartAttachments(
-    watchlistData.watchlist
-  );
+  const chartMap = await buildChartMap(watchlistData.watchlist);
 
-  const htmlContent = await formatEmailHTML(
+  const html = await formatEmailHTML(
     marketData,
     watchlistData.watchlist,
-    chartCidMap
+    chartMap
   );
 
-  const info = await transporter.sendMail({
-    from: process.env.EMAIL_USER,
+  return await resend.emails.send({
+    from: "onboarding@resend.dev",
     to: process.env.EMAIL_TO,
-    subject: `📊 Daily Stocks Report ${serverDate}`,
-    html: htmlContent,
-    attachments,
+    subject: "📊 Daily Stocks Report",
+    html,
   });
-
-  return info;
 }
 
+// ================= TEST =================
 async function sendSimpleTestEmail() {
-  const info = await transporter.sendMail({
-    from: process.env.EMAIL_USER,
+  return await resend.emails.send({
+    from: "onboarding@resend.dev",
     to: process.env.EMAIL_TO,
     subject: "Test Email",
-    text: "If you received this, test email sending works.",
+    html: "<p>Test OK</p>",
   });
-
-  return info;
 }
 
+// ================= RETRY =================
 async function sendEmailWithRetry(maxRetries = 3) {
-  let attempt = 0;
-
-  while (attempt < maxRetries) {
+  for (let i = 1; i <= maxRetries; i++) {
     try {
-      attempt++;
-      console.log(`Attempt ${attempt} to send email...`);
-
+      console.log(`Attempt ${i}`);
       await sendEmailDirect();
-
-      console.log("✅ Email sent successfully");
       return true;
-    } catch (error) {
-      console.error(`❌ Attempt ${attempt} failed:`, error.message);
-
-      if (attempt >= maxRetries) {
-        console.error("🚨 All retry attempts failed.");
-        return false;
-      }
-
-      const delay = attempt * 5000;
-      console.log(`⏳ Retrying in ${delay / 1000}s...`);
-      await new Promise((resolve) => setTimeout(resolve, delay));
+    } catch (e) {
+      console.error("Fail:", e.message);
+      await new Promise((r) => setTimeout(r, i * 5000));
     }
   }
+  return false;
 }
 
 module.exports = {
-  formatEmailHTML,
   sendEmailDirect,
   sendSimpleTestEmail,
   sendEmailWithRetry,
