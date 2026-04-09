@@ -134,7 +134,7 @@ async function generateLineChartBuffer(symbol, priceHistory, width = 900, height
         itemStyle: { color: "#22c55e" }
       }
     ],
-    backgroundColor: "#0f172a",
+    backgroundColor: "#1e293b",
   };
 
   chart.setOption(option);
