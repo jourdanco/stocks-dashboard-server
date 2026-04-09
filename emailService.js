@@ -328,6 +328,7 @@ async function formatEmailHTML(marketData, watchlist, chartMap = {}) {
 async function sendEmailDirect() {
   const marketData = await getMarketData();
   const watchlistData = await getWatchlistData();
+  const serverDate = getPHDateString();
 
   const chartMap = await buildChartMap(watchlistData.watchlist);
 
