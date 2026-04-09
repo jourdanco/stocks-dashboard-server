@@ -102,28 +102,46 @@ async function generateCandlestickChartBuffer(
 }
 
 async function generateLineChartBuffer(symbol, priceHistory, width = 900, height = 500) {
-  const timestamps = priceHistory.map(p => new Date(p.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
-  const prices = priceHistory.map(p => p.price);
+  const timestamps = priceHistory.map(p => new Date(p.timestamp).toISOString().split('T')[0]); // use full date
+  const prices = priceHistory.map(p => Number(p.price));
 
   const canvas = createCanvas(width, height);
-  const chart = echarts.init(canvas);
+  const chart = echarts.init(canvas, null, { renderer: "canvas", width, height });
 
   const option = {
+    backgroundColor: "#1e293b", // transparent to match candlestick chart
+    animation: false,
     title: {
       text: `${symbol} Daily Price`,
       left: "center",
-      textStyle: { color: "#f8fafc" }
+      textStyle: { color: "#f8fafc", fontSize: 18 }
+    },
+    grid: {
+      left: 60,
+      right: 20,
+      top: 60,
+      bottom: 50,
+    },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: { type: "cross" }
     },
     xAxis: {
       type: "category",
       data: timestamps,
+      boundaryGap: true, // same as candlestick
+      axisLine: { lineStyle: { color: "#94a3b8" } },
       axisLabel: { color: "#cbd5e1" },
-      boundaryGap: false,
+      splitLine: { show: false }
     },
     yAxis: {
       type: "value",
+      scale: true,
+      minInterval: 1,
+      axisLine: { lineStyle: { color: "#94a3b8" } },
       axisLabel: { color: "#cbd5e1" },
-      splitLine: { lineStyle: { color: "#334155" } }
+      splitLine: { lineStyle: { color: "#334155" } },
+      splitArea: { show: false }
     },
     series: [
       {
@@ -133,12 +151,13 @@ async function generateLineChartBuffer(symbol, priceHistory, width = 900, height
         lineStyle: { color: "#22c55e" },
         itemStyle: { color: "#22c55e" }
       }
-    ],
-    backgroundColor: "#1e293b",
+    ]
   };
 
   chart.setOption(option);
-  return canvas.toBuffer();
+  const buffer = canvas.toBuffer("image/png");
+  chart.dispose();
+  return buffer;
 }
 
 module.exports = {
