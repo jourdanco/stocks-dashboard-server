@@ -102,8 +102,13 @@ async function generateCandlestickChartBuffer(
 }
 
 async function generateLineChartBuffer(symbol, priceHistory, width = 600, height = 300) {
-  const timestamps = priceHistory.map(p => new Date(p.timestamp).toISOString().split('T')[0]); // use full date
-  const prices = priceHistory.map(p => Number(p.price));
+  const filtered = priceHistory.filter(p => Number(p.price) !== 0);
+
+  const timestamps = filtered.map(p =>
+    new Date(p.timestamp).toISOString().split('T')[0]
+  );
+
+  const prices = filtered.map(p => Number(p.price));
 
   const canvas = createCanvas(width, height);
   const chart = echarts.init(canvas, null, { renderer: "canvas", width, height });
